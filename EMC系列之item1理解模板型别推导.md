@@ -24,6 +24,25 @@
     
 **此种情况下推导规则:**
 
+- 若expr是引用类型，则先将引用部分忽略.
+- 然后,对expr的型别和ParamType的型别执行模式匹配，来决定T的类型.
+  code:
+  ``` c++
+      template<typename T>
+      void f(T& param);
+  ```
+    变量声明：
+``` c++
+    int x = 27;
+    const int cx = x;
+    const int& rx = x;
+```
+**下面的推导的结果如下**
+- f(x)  :   T-> int, param -> int&
+- f(cx) :   T-> const int, param -> const int& 
+- f(rx) :   T-> const int, param -> const int&
+
+*注意:rx的引用会在推导过程中被忽略.* 
 
 ### 1.2 ParamType是个万能引用
 
