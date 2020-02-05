@@ -2,13 +2,13 @@
 
 **函数模板一般形式如下:**
 ``` c++
-    template<typename T> 
-    void func(ParamType parm)
+template<typename T> 
+void func(ParamType parm)
 ```
 
 **而调用形式如下:**
 ``` c++
-    func(expr);
+func(expr);
 ```
     在编译期，编译器会通过expr推导二个型别: 一个是T的型别，另一个是ParamType的型别.
   T 和 ParamType，这二个往往不一样。 因为ParmType一般会包含一些修辞符.
@@ -28,14 +28,14 @@
 - 然后,对expr的型别和ParamType的型别执行模式匹配，来决定T的类型.
   code:
   ``` c++
-      template<typename T>
-      void f(T& param);
+  template<typename T>
+  void f(T& param);
   ```
     变量声明：
 ``` c++
-    int x = 27;
-    const int cx = x;
-    const int& rx = x;
+int x = 27;
+const int cx = x;
+const int& rx = x;
 ```
 **下面的推导的结果如下**
 - f(x)  :   T-> int, param -> int&
