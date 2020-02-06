@@ -112,19 +112,75 @@ const int& rx = x;
 
 *const和volatile仅会在按值形参处忽略. 若形参时const的引用或者指针，expr的常量性会在推导过程中加以保留*
 
-*??? 待验证 特殊案例：expr是个指向到const对象的const指针，且expr按值传递给param.*
+*特殊案例：expr是个指向到const对象的const指针，且expr按值传递给param.*
+
 ``` c++
 template<typename T>
 void f(T param);
 const char* const ptr = "fun with pointers"; 
 ```
-- f(ptr) - ??? T -> char*, param -> const char* const型别.
+- f(ptr) - T -> const char*, param -> const char*型别.
 
 
 ### 1.4 数组实参
+*数组型别有别于指针类型，尽管有时看起来它们可以互换. 形成这种假象的主要原因，在很多情况下，数组会退化成指向其首元素的指针.*
+``` c++
+const char name[] = "J. P Briggs";   //name的型别时const char[13].
+const char* ptrToName = name;        //ptrToName的型别是const char* 。
+```
+上述代码在编译器上是能通过编译的.
 
+#### 1.4.1 数组传递给持有按值形参的模板
+``` c++
+template<typename T>
+void f(T param);   //持有按值形参的模板.
+```
+- f(name):  T -> const char*, param -> const char*型别.
 
+#### 1.4.2 数组传递给按引用传递形参的模板
+``` c++
+template<typename T> 
+void f(T& name); //按引用方式传递形参的模板.
+```
+
+- f(name): T -> const char[13], param -> const char(&)[13].
+
+**可以利用声明数组引用这一能力创造出一个模板，用来推导处数组含有的元素个数.**
+``` c++
+template<typename T, std::size_t N> 
+constexpr std::size_t array_size(T (&)[N]) noexcept {
+  return N ;
+}
+```
+例如：
+``` c++
+int keyVals[] = {1,2,3,4,5,5,6};
+int mappedVals[array_size(keyVals)];
+```
+
+**在现代C++中，优先选用std::array:**
+
+``` c++
+std::array<int ,array_size(keyVals)> mappedVals;
+```
 ### 1.5 函数实参
+*在C++中, 函数型别也同样会退化为函数指针. 并且数组型别推导规则适用函数及函数指针的退化.*
+```c++
+void someFunc(int, double) // someFunc 是个函数, 其型别为void(int,double);
+```
+#### 1.5.1 持有按值形参传递的模板
+``` c++
+template<typename T> 
+void f1(T param);
+``` 
+- f1(somFunc): T-> void(*)(int ,double) , param ->void(*)(int ,double).
+
+#### 1.5.2 持有按引用形参传递的模板 
+``` c++
+template<typename T> 
+void f1(T& param);
+``` 
+- f1(somFunc): T-> void(int ,double) , param ->void(&)(int ,double).
 
 
 ## 2. 总结
@@ -134,4 +190,50 @@ const char* const ptr = "fun with pointers";
 - 对按值传递的形参进行推导时,若实参型别中带有const或volatile修辞词,则它们还是会被当作不带const或者volatile的型别来处理.
 - 在模板型别推导过程中,数组或者函数型别的实参会退化成对应的指针,除非它们被用来初始化引用.
 
-## 3. 代码附件
+## 3. 代码使用boost库中type_index
+**部分代码如下:**
+``` c++
+#include <boost/type_index.hpp>
+#include <iostream> 
+#include <array>
+
+using namespace std;
+using namespace boost;
+using boost::typeindex::type_id_with_cvr;
+
+template<typename T> 
+void f(T& param) {
+	std::cout << "T =" << type_id_with_cvr<T>().pretty_name() << std::endl;
+	std::cout << "param =" << type_id_with_cvr<decltype(param)>().pretty_name() << std::endl;
+}
+
+void someFunc(int, double) {
+}
+
+template<typename T, std::size_t N>
+constexpr std::size_t array_size(T(&)[N]) noexcept {
+	return N;
+}
+
+int main(int argc,char** argv) {
+#if 0	
+	int x = 27;
+	const int cx = x;
+	const int& rx = x;
+	f(x); 
+	f(27);
+#endif
+	//char const * const ptr = "fun with pointers";
+	//f(ptr);
+	//const char name[] = "J. P. Briggs";
+	//f(name);
+	//int keyVals[] = { 1,2,3,4,5,5,6 };
+	//std::array<int, array_size(keyVals)> mappedVals = { 1,2,3,4,5,5,6 };
+	//for(auto e: mappedVals)
+	//{
+	//	std::cout << e << std::endl;
+	//}
+	f(someFunc);
+	return 0;
+}
+```
